@@ -31,6 +31,22 @@ char keyPressed(void) {
     char ch;
     // Non-blocking read (returns 1 on success, <1 otherwise)
     if (read(STDIN_FILENO, &ch, 1) == 1) {
+        // Check for ANSI escape sequences (Arrow keys)
+        // Arrows usually start with \033[ ([A, [B, [C, [D)
+        if (ch == 27) {
+            char seq[2];
+            if (read(STDIN_FILENO, &seq[0], 1) == 1 && read(STDIN_FILENO, &seq[1], 1) == 1) {
+                if (seq[0] == '[') {
+                    switch (seq[1]) {
+                        case 'A': return 'w'; // Up
+                        case 'B': return 's'; // Down
+                        case 'C': return 'd'; // Right
+                        case 'D': return 'a'; // Left
+                    }
+                }
+            }
+            return 27; // Just ESC
+        }
         return ch;
     }
     return 0;
