@@ -35,7 +35,7 @@ int main(void) {
         
         // E. Control speed (smooth gameplay)
         // 100,000 microseconds = 100ms delay per frame
-        usleep(100000);
+        usleep(200000);
     }
     
     // 3. Graceful Exit

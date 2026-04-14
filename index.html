@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake: Retro Edition</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            /* Old phone LCD font */
+            font-family: 'Courier New', Courier, monospace;
+            /* Classic LCD background color (light greenish/grey) or purely white/gray */
+            background-color: #e0e0e0;
+            color: #000000;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .game-container {
+            position: relative;
+            background: #ffffff;
+            border: 4px solid #000000;
+            padding: 20px;
+            box-shadow: 10px 10px 0px rgba(0,0,0,0.5); /* Retro solid drop shadow */
+            max-width: 900px;
+            margin-bottom: 20px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #000000;
+            padding-bottom: 10px;
+        }
+
+        .title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .score-board {
+            display: flex;
+            gap: 20px;
+        }
+
+        .score-box {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        canvas {
+            background: #ffffff;
+            display: block;
+            border: 2px solid #000000;
+        }
+
+        /* Overlays */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .overlay.hidden {
+            display: none;
+        }
+
+        h2 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        button {
+            background: #ffffff;
+            color: #000000;
+            border: 3px solid #000000;
+            padding: 10px 20px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            font-family: 'Courier New', Courier, monospace;
+            text-transform: uppercase;
+        }
+
+        button:hover {
+            background: #000000;
+            color: #ffffff;
+        }
+
+        button:active {
+            transform: translate(2px, 2px);
+        }
+
+        .controls-hint {
+            color: #000000;
+            font-size: 1rem;
+            font-weight: bold;
+            display: flex;
+            gap: 15px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="game-container">
+        <div class="header">
+            <div class="title">SNAKE V1.0</div>
+            <div class="score-board">
+                <div class="score-box">SCORE: <span id="score">0</span></div>
+                <div class="score-box">HI: <span id="highScore">0</span></div>
+            </div>
+        </div>
+
+        <!-- 40x20 grid, 20px cells = 800x400 -->
+        <div class="canvas-container" style="position: relative; width: 800px; height: 400px;">
+            <canvas id="gameCanvas" width="800" height="400"></canvas>
+
+            <div id="startOverlay" class="overlay">
+                <h2>READY</h2>
+                <div class="subtitle">PRESS START TO PLAY</div>
+                <button id="startBtn">START</button>
+            </div>
+
+            <div id="gameOverOverlay" class="overlay hidden">
+                <h2>GAME OVER</h2>
+                <div class="subtitle" id="finalScoreDisplay">SCORE: 0</div>
+                <button id="restartBtn">RETRY</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls-hint">
+        USE W/A/S/D OR ARROWS
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('score');
+        const highScoreEl = document.getElementById('highScore');
+        const startOverlay = document.getElementById('startOverlay');
+        const gameOverOverlay = document.getElementById('gameOverOverlay');
+        const finalScoreDisplay = document.getElementById('finalScoreDisplay');
+        const startBtn = document.getElementById('startBtn');
+        const restartBtn = document.getElementById('restartBtn');
+
+        // Game Configuration
+        const GAME_WIDTH = 40;
+        const GAME_HEIGHT = 20;
+        const CELL_SIZE = 20;
+        const INITIAL_SPEED_MS = 200;
+
+        // Directions definition
+        const UP = { x: 0, y: -1 };
+        const DOWN = { x: 0, y: 1 };
+        const LEFT = { x: -1, y: 0 };
+        const RIGHT = { x: 1, y: 0 };
+
+        let state = {
+            snake: [],
+            food: {},
+            dir: RIGHT,
+            nextDir: RIGHT,
+            score: 0,
+            gameOver: false,
+            gameLoopId: null
+        };
+
+        let highScore = localStorage.getItem('snakeHighScoreRetro') || 0;
+        highScoreEl.innerText = highScore;
+
+        // Utility: Random Integer (inclusive min, exclusive max)
+        function randomRange(min, max) {
+            return Math.floor(Math.random() * (max - min)) + min;
+        }
+
+        // Initialize Game State
+        function initGame() {
+            state.score = 0;
+            scoreEl.innerText = state.score;
+            state.gameOver = false;
+            state.dir = RIGHT;
+            state.nextDir = RIGHT;
+
+            // Head at center
+            let headX = Math.floor(GAME_WIDTH / 2);
+            let headY = Math.floor(GAME_HEIGHT / 2);
+            
+            // Build initial body: 1 head + 3 body segments
+            state.snake = [];
+            for (let i = 0; i < 4; i++) {
+                state.snake.push({ x: headX - i, y: headY });
+            }
+
+            spawnFood();
+        }
+
+        // Food Spawning
+        function spawnFood() {
+            let valid = false;
+            while (!valid) {
+                let fx = randomRange(1, GAME_WIDTH - 1);
+                let fy = randomRange(1, GAME_HEIGHT - 1);
+
+                // Collision check
+                let collision = state.snake.some(segment => segment.x === fx && segment.y === fy);
+                if (!collision) {
+                    state.food = { x: fx, y: fy };
+                    valid = true;
+                }
+            }
+        }
+
+        // Retro drawing (solid black simple shapes)
+        function render() {
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw faint grid (optional, matching old LCD constraints)
+            ctx.strokeStyle = '#e0e0e0';
+            ctx.lineWidth = 1;
+            for(let x=0; x<canvas.width; x+=CELL_SIZE) {
+                ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke();
+            }
+            for(let y=0; y<canvas.height; y+=CELL_SIZE) {
+                ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke();
+            }
+
+            // Draw Food: Simple solid square pixel (red as requested)
+            ctx.fillStyle = '#ff0000';
+            // Leave a 2px gap around the block so it reads cleanly as a tile
+            ctx.fillRect(state.food.x * CELL_SIZE + 2, state.food.y * CELL_SIZE + 2, CELL_SIZE - 4, CELL_SIZE - 4);
+
+            // Draw Snake: Solid black tiles with white eyes on head
+            state.snake.forEach((segment, index) => {
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(segment.x * CELL_SIZE + 1, segment.y * CELL_SIZE + 1, CELL_SIZE - 2, CELL_SIZE - 2);
+                
+                // Draw white eyes for the snake's head
+                if (index === 0) {
+                    ctx.fillStyle = "#ffffff";
+                    let eyeOffset = 4;
+                    let eyeSize = 3;
+                    let hx = segment.x * CELL_SIZE;
+                    let hy = segment.y * CELL_SIZE;
+                    
+                    if(state.dir === UP || state.dir === DOWN) {
+                        ctx.fillRect(hx + eyeOffset, hy + eyeOffset + (state.dir===DOWN?8:0), eyeSize, eyeSize);
+                        ctx.fillRect(hx + CELL_SIZE - eyeOffset - eyeSize, hy + eyeOffset + (state.dir===DOWN?8:0), eyeSize, eyeSize);
+                    } else {
+                        ctx.fillRect(hx + eyeOffset + (state.dir===RIGHT?8:0), hy + eyeOffset, eyeSize, eyeSize);
+                        ctx.fillRect(hx + eyeOffset + (state.dir===RIGHT?8:0), hy + CELL_SIZE - eyeOffset - eyeSize, eyeSize, eyeSize);
+                    }
+                }
+            });
+        }
+
+        // Logic
+        function update() {
+            if (state.gameOver) return;
+
+            state.dir = state.nextDir;
+
+            let head = state.snake[0];
+            let newHead = {
+                x: head.x + state.dir.x,
+                y: head.y + state.dir.y
+            };
+
+            // Wall collision
+            if (newHead.x < 0 || newHead.x >= GAME_WIDTH || newHead.y < 0 || newHead.y >= GAME_HEIGHT) {
+                endGame();
+                return;
+            }
+
+            // Self collision
+            if (state.snake.some(segment => segment.x === newHead.x && segment.y === newHead.y)) {
+                endGame();
+                return;
+            }
+
+            // Move
+            state.snake.unshift(newHead);
+
+            // Food collision
+            if (newHead.x === state.food.x && newHead.y === state.food.y) {
+                state.score += 10;
+                scoreEl.innerText = state.score;
+                spawnFood();
+            } else {
+                state.snake.pop(); // Remove tail
+            }
+        }
+
+        function gameLoop() {
+            update();
+            render();
+        }
+
+        function startGame() {
+            startOverlay.classList.add('hidden');
+            gameOverOverlay.classList.add('hidden');
+            initGame();
+            if (state.gameLoopId) clearInterval(state.gameLoopId);
+            state.gameLoopId = setInterval(gameLoop, INITIAL_SPEED_MS);
+            
+            // initial render
+            render();
+        }
+
+        function endGame() {
+            state.gameOver = true;
+            clearInterval(state.gameLoopId);
+            finalScoreDisplay.innerText = `SCORE: ${state.score}`;
+            gameOverOverlay.classList.remove('hidden');
+
+            if (state.score > highScore) {
+                highScore = state.score;
+                localStorage.setItem('snakeHighScoreRetro', highScore);
+                highScoreEl.innerText = highScore;
+            }
+        }
+
+        // Input handling
+        window.addEventListener('keydown', e => {
+            if(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
+                e.preventDefault();
+            }
+
+            let next = { ...state.dir };
+            if ((e.key === 'w' || e.key === 'W' || e.key === 'ArrowUp') && state.dir !== DOWN) {
+                next = UP;
+            } else if ((e.key === 's' || e.key === 'S' || e.key === 'ArrowDown') && state.dir !== UP) {
+                next = DOWN;
+            } else if ((e.key === 'a' || e.key === 'A' || e.key === 'ArrowLeft') && state.dir !== RIGHT) {
+                next = LEFT;
+            } else if ((e.key === 'd' || e.key === 'D' || e.key === 'ArrowRight') && state.dir !== LEFT) {
+                next = RIGHT;
+            }
+            state.nextDir = next;
+        });
+
+        startBtn.addEventListener('click', startGame);
+        restartBtn.addEventListener('click', startGame);
+
+        // Initial setup
+        initGame();
+        render(); 
+
+    </script>
+</body>
+</html>
