@@ -36,6 +36,7 @@ void init_game(GameState* state) {
     state->dir = RIGHT;
     state->score = 0;
     state->game_over = 0;
+    state->death_reason = 0;
     
     // Allocate starting head
     state->head = (SnakeNode*)alloc(sizeof(SnakeNode));
@@ -81,8 +82,9 @@ void update_game(GameState* state, char input) {
     else if (state->dir == RIGHT) new_x++;
     
     // Wall collision
-    if (new_x < 1 || new_x > GAME_WIDTH || new_y < 1 || new_y > GAME_HEIGHT) {
+    if (new_x < 1 || new_x > GAME_WIDTH || new_y < 1 || new_y > GAME_HEIGHT-1) {
         state->game_over = 1;
+        state->death_reason = "Hit a wall!";
         return;
     }
     
@@ -91,6 +93,7 @@ void update_game(GameState* state, char input) {
     while(curr) {
         if(curr->x == new_x && curr->y == new_y) {
             state->game_over = 1;
+            state->death_reason = "Bit your own tail!";
             return;
         }
         curr = curr->next;
@@ -134,24 +137,24 @@ void render_game(GameState* state) {
     
     // Draw top border
     move_cursor(BOARD_X_OFFSET, BOARD_Y_OFFSET);
-    for(int x = 0; x <= GAME_WIDTH + 1; x++) draw_char('#');
+    for(int x = 0; x <= GAME_WIDTH + 1; x++) draw_char('_');
     
     // Draw sides and contents
     for (int y = 1; y <= GAME_HEIGHT; y++) {
         move_cursor(BOARD_X_OFFSET, BOARD_Y_OFFSET + y);
-        draw_char('#'); // Left wall
+        draw_char('|'); // Left wall
         
         move_cursor(BOARD_X_OFFSET + GAME_WIDTH + 1, BOARD_Y_OFFSET + y);
-        draw_char('#'); // Right wall
+        draw_char('|'); // Right wall
     }
     
     // Draw bottom border
     move_cursor(BOARD_X_OFFSET, BOARD_Y_OFFSET + GAME_HEIGHT + 1);
-    for(int x = 0; x <= GAME_WIDTH + 1; x++) draw_char('#');
+    for(int x = 0; x <= GAME_WIDTH + 1; x++) draw_char('-');
     
     // Draw Food
     move_cursor(BOARD_X_OFFSET + state->food_x, BOARD_Y_OFFSET + state->food_y);
-    draw_char('*');
+    draw_char('+');
     
     // Draw Snake
     SnakeNode* curr = state->head;

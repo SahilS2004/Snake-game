@@ -150,6 +150,7 @@
 
             <div id="gameOverOverlay" class="overlay hidden">
                 <h2>GAME OVER</h2>
+                <div class="subtitle" id="deathReasonDisplay">--</div>
                 <div class="subtitle" id="finalScoreDisplay">SCORE: 0</div>
                 <button id="restartBtn">RETRY</button>
             </div>
@@ -168,6 +169,7 @@
         const startOverlay = document.getElementById('startOverlay');
         const gameOverOverlay = document.getElementById('gameOverOverlay');
         const finalScoreDisplay = document.getElementById('finalScoreDisplay');
+        const deathReasonDisplay = document.getElementById('deathReasonDisplay');
         const startBtn = document.getElementById('startBtn');
         const restartBtn = document.getElementById('restartBtn');
 
@@ -175,7 +177,7 @@
         const GAME_WIDTH = 40;
         const GAME_HEIGHT = 20;
         const CELL_SIZE = 20;
-        const INITIAL_SPEED_MS = 200;
+        const INITIAL_SPEED_MS = 100;
 
         // Directions definition
         const UP = { x: 0, y: -1 };
@@ -190,6 +192,7 @@
             nextDir: RIGHT,
             score: 0,
             gameOver: false,
+            deathReason: '',
             gameLoopId: null
         };
 
@@ -296,12 +299,14 @@
 
             // Wall collision
             if (newHead.x < 0 || newHead.x >= GAME_WIDTH || newHead.y < 0 || newHead.y >= GAME_HEIGHT) {
+                state.deathReason = 'HIT A WALL!';
                 endGame();
                 return;
             }
 
             // Self collision
             if (state.snake.some(segment => segment.x === newHead.x && segment.y === newHead.y)) {
+                state.deathReason = 'BIT YOUR OWN TAIL!';
                 endGame();
                 return;
             }
@@ -338,6 +343,7 @@
         function endGame() {
             state.gameOver = true;
             clearInterval(state.gameLoopId);
+            deathReasonDisplay.innerText = state.deathReason;
             finalScoreDisplay.innerText = `SCORE: ${state.score}`;
             gameOverOverlay.classList.remove('hidden');
 

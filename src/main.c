@@ -44,11 +44,18 @@ int main(void) {
     
     // Position cursor at the end to avoid overwriting the board
     move_cursor(1, GAME_HEIGHT + 6);
-    draw_string("Final Score: ");
+    draw_string("\n");
+    draw_string("Cause of death : ");
+    if (state.death_reason) {
+        draw_string(state.death_reason);
+    } else {
+        draw_string("Quit by player.");
+    }
+    draw_string("\nFinal Score    : ");
     char score_str[32];
     int_to_str(state.score, score_str);
     draw_string(score_str);
-    draw_string("\nDone.\n");
+    draw_string("\nGame Over.\n");
     
     return 0;
 }

@@ -6,7 +6,7 @@
  * Real-time mechanics and snake body management.
  */
 
-#define GAME_WIDTH 40
+#define GAME_WIDTH 80
 #define GAME_HEIGHT 20
 
 typedef enum {
@@ -25,6 +25,7 @@ typedef struct GameState {
     Direction dir;
     int score;
     int game_over;
+    const char* death_reason; /* "Wall" or "Self" */
 } GameState;
 
 /* Initialize new game state */
