@@ -1,0 +1,44 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{listings}
+
+\begin{document}
+
+\title{Low-Level Systems Programming in Terminal Game Development: A Custom Memory and Rendering Approach in C}
+
+\author{\IEEEauthorblockN{Ayush Gupta}
+\IEEEauthorblockA{\textit{Department of Computer Science} \\
+\textit{University Name}\\
+City, Country \\
+email@example.com}
+}
+
+\maketitle
+
+\begin{abstract}
+This paper discusses the implementation of a terminal-based Snake game developed in C, focusing on low-level systems programming techniques. Unlike conventional implementations that rely on high-level libraries like ncurses or the standard C library for memory management, this project implements a custom linked-list based memory allocator, raw ANSI escape sequence rendering, and non-blocking I/O handling via termios.
+\end{abstract}
+
+\section{Introduction}
+Modern software development often abstracts hardware and OS interactions through extensive libraries. This project aims to strip back these layers by building a classic Snake game using only core POSIX APIs and custom logic.
+
+\section{System Architecture}
+\subsection{Custom Memory Management}
+The core of the memory system is a static character array of 1MB. A custom allocator (\textit{alloc}) and deallocator (\textit{dealloc}) manage this space using a free-list approach. 
+
+\subsection{Terminal Rendering Engine}
+Rendering is achieved through ANSI escape sequences, allowing for high-speed updates without the overhead of UI libraries.
+
+\subsection{Non-Blocking Input Handling}
+The terminal settings are modified via \texttt{termios} to capture immediate keypresses, enabling real-time gameplay.
+
+\section{Conclusion}
+The project successfully demonstrates complex systems programming concepts within a compact, performant application.
+
+\end{document}
