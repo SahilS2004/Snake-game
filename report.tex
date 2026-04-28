@@ -8,6 +8,9 @@
 \usepackage{xcolor}
 \usepackage{listings}
 
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+
 \begin{document}
 
 \title{Low-Level Systems Programming in Terminal Game Development: A Custom Memory and Rendering Approach in C}
@@ -29,24 +32,65 @@ sahil.s23csai@nst.rishihood.edu.in
 }
 
 \maketitle
+
 \begin{abstract}
-This paper discusses the implementation of a terminal-based Snake game developed in C, focusing on low-level systems programming techniques. Unlike conventional implementations that rely on high-level libraries like ncurses or the standard C library for memory management, this project implements a custom linked-list based memory allocator, raw ANSI escape sequence rendering, and non-blocking I/O handling via termios.
+This paper discusses the implementation of a terminal-based Snake game developed in C, focusing on low-level systems programming techniques. Unlike conventional implementations that rely on high-level libraries like ncurses or the standard C library for memory management, this project implements a custom linked-list based memory allocator, raw ANSI escape sequence rendering, and non-blocking I/O handling via termios. The result is a high-performance, lightweight application that serves as a pedagogical tool for understanding heap management and terminal interfacing.
 \end{abstract}
 
+\begin{IEEEkeywords}
+Systems Programming, C, Memory Management, ANSI Escape Codes, Terminal UI, Game Development.
+\end{IEEEkeywords}
+
 \section{Introduction}
-Modern software development often abstracts hardware and OS interactions through extensive libraries. This project aims to strip back these layers by building a classic Snake game using only core POSIX APIs and custom logic.
+Modern software development often abstracts hardware and OS interactions through extensive libraries. While efficient for productivity, this abstraction masks the underlying mechanics of memory allocation and terminal communication. This project aims to strip back these layers by building a classic Snake game using only core POSIX APIs and custom logic.
+
+The primary objectives were:
+\begin{enumerate}
+\item Implementing a custom heap manager on a static buffer.
+\item Developing a rendering engine using direct terminal control codes.
+\item Managing real-time input without blocking the main execution loop.
+\end{enumerate}
 
 \section{System Architecture}
+The application is structured into several modular components, each replacing a piece of the standard library or providing a specific system service.
+
 \subsection{Custom Memory Management}
-The core of the memory system is a static character array of 1MB. A custom allocator (\textit{alloc}) and deallocator (\textit{dealloc}) manage this space using a free-list approach. 
+The core of the memory system is a static character array of 1MB, which acts as the physical memory. A custom allocator (\textit{alloc}) and deallocator (\textit{dealloc}) manage this space using a free-list approach. Each block of memory is preceded by a header containing the block size, a flag indicating if it is free, and a pointer to the next block.
+
+\subsubsection{Allocation Strategy}
+The allocator uses a First-Fit strategy. When a request is made, the list is traversed until a free block of sufficient size is found. If the block is significantly larger than the request, it is split into two to reduce internal fragmentation.
+
+\subsubsection{Coalescing}
+To prevent external fragmentation, the deallocator performs immediate coalescing. If the freed block's adjacent neighbor is also free, they are merged into a single larger block.
 
 \subsection{Terminal Rendering Engine}
-Rendering is achieved through ANSI escape sequences, allowing for high-speed updates without the overhead of UI libraries.
+Rendering is achieved through ANSI escape sequences. By writing specific byte sequences (e.g., \texttt{\textbackslash 033[H} for cursor home, \texttt{\textbackslash 033[2J} for screen clear), the game controls the terminal display with minimal overhead. This eliminates the need for the \textit{ncurses} library, reducing the binary size and dependency chain.
 
 \subsection{Non-Blocking Input Handling}
-The terminal settings are modified via \texttt{termios} to capture immediate keypresses, enabling real-time gameplay.
+Standard C input functions (like \textit{getchar}) are blocking by default. The \texttt{keyboard.c} module modifies the terminal settings using the \texttt{termios} library. By disabling canonical mode and echoing, the game can read bytes from stdin as soon as they are pressed, enabling real-time responsiveness.
+
+\section{Implementation Details}
+The game logic is decoupled from the rendering and system layers. The state is maintained in a \texttt{GameState} structure, which holds a linked list of snake nodes.
+
+\begin{lstlisting}[language=C, caption=Snake Node Structure]
+typedef struct SnakeNode {
+    int x, y;
+    struct SnakeNode* next;
+} SnakeNode;
+\end{lstlisting}
+
+When the snake moves, a new head node is allocated using the custom \textit{alloc} function. If food is not consumed, the tail node is removed and freed using \textit{dealloc}. This frequent allocation and deallocation cycle serves as a stress test for the custom memory manager.
+
+\section{Performance Analysis}
+By avoiding the standard \texttt{malloc} implementation and high-level UI libraries, the application maintains a near-zero CPU footprint during idle states and provides instantaneous rendering updates. The custom allocator's performance remains consistent throughout the game lifecycle due to the small number of active objects.
 
 \section{Conclusion}
-The project successfully demonstrates complex systems programming concepts within a compact, performant application.
+The project successfully demonstrates that complex systems programming concepts can be effectively applied in a simple game environment. The implementation of custom memory management and direct terminal interfacing provides deep insights into how high-level abstractions operate under the hood. Future work could involve extending the memory allocator to support different fit strategies (Best-Fit, Next-Fit) or implementing a custom thread scheduler for background logic.
+
+\begin{thebibliography}{00}
+\bibitem{b1} B. Kernighan and D. Ritchie, "The C Programming Language," 2nd ed. Prentice Hall, 1988.
+\bibitem{b2} W. R. Stevens and S. A. Rago, "Advanced Programming in the UNIX Environment," 3rd ed. Addison-Wesley, 2013.
+\bibitem{b3} ANSI Escape Sequences, Terminal Control, VT100 User Manual.
+\end{thebibliography}
 
 \end{document}
