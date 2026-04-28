@@ -8,6 +8,8 @@
 
 #define GAME_WIDTH 40
 #define GAME_HEIGHT 20
+#define BOARD_X_OFFSET 4
+#define BOARD_Y_OFFSET 2
 
 typedef enum {
     UP, DOWN, LEFT, RIGHT

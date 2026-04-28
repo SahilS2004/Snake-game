@@ -42,13 +42,13 @@ int main(void) {
     // Restore original terminal behavior (ICANON/ECHO)
     reset_keyboard();
     
-    // Position cursor at the end to avoid overwriting the board
-    move_cursor(1, GAME_HEIGHT + 6);
+    // Use newlines to push the board up and ensure a clean area for the final score
+    draw_string("\n\n\n\n\n"); 
     draw_string("Final Score: ");
     char score_str[32];
     int_to_str(state.score, score_str);
     draw_string(score_str);
-    draw_string("\nDone.\n");
+    draw_string("\n\rDone.\n");
     
     return 0;
 }

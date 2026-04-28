@@ -75,7 +75,11 @@ int str_to_int(const char* s) {
     }
     
     while (s[i]) {
-        res = res * 10 + (s[i] - '0');
+        if (s[i] >= '0' && s[i] <= '9') {
+            res = res * 10 + (s[i] - '0');
+        } else {
+            break; // Stop at first non-digit
+        }
         i++;
     }
     

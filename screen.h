@@ -18,4 +18,7 @@ void draw_char(char c);
 /* Draw a null-terminated string at current cursor position */
 void draw_string(const char* s);
 
+/* Flush terminal output buffer */
+void flush_screen(void);
+
 #endif /* SCREEN_H */

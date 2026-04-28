@@ -7,23 +7,25 @@
  */
 
 void clear_screen(void) {
-    // \033[2J: clear screen, \033[H: move home
-    printf("\033[2J\033[H");
+    // \x1b[H: move home, \x1b[J: clear from cursor to end of screen
+    printf("\x1b[H\x1b[J");
     fflush(stdout);
 }
 
 void move_cursor(int x, int y) {
-    // \033[y;xH: move to row y, column x (ANSI is 1-indexed)
-    printf("\033[%d;%dH", y, x);
+    // \x1b[y;xH: move to row y, column x (ANSI is 1-indexed)
+    printf("\x1b[%d;%dH", y, x);
     fflush(stdout);
 }
 
 void draw_char(char c) {
     putchar(c);
-    fflush(stdout);
 }
 
 void draw_string(const char* s) {
     printf("%s", s);
+}
+
+void flush_screen(void) {
     fflush(stdout);
 }

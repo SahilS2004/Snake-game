@@ -10,22 +10,23 @@
  * Custom memory allocation for snake nodes and non-blocking input handling.
  */
 
-// Global constant to help with the game board dimensions
-#define BOARD_X_OFFSET 4
-#define BOARD_Y_OFFSET 2
+// Logic implementation.
 
 static void spawn_food(GameState* state) {
-    state->food_x = random_range(2, GAME_WIDTH - 1);
-    state->food_y = random_range(2, GAME_HEIGHT - 1);
-    
-    // Check food doesn't overlap snake
-    SnakeNode* curr = state->head;
-    while(curr) {
-        if(curr->x == state->food_x && curr->y == state->food_y) {
-            spawn_food(state); // Collision, try again
-            return;
+    int valid = 0;
+    while (!valid) {
+        state->food_x = random_range(1, GAME_WIDTH);
+        state->food_y = random_range(1, GAME_HEIGHT);
+        
+        valid = 1;
+        SnakeNode* curr = state->head;
+        while(curr) {
+            if(curr->x == state->food_x && curr->y == state->food_y) {
+                valid = 0; // Collision, try again
+                break;
+            }
+            curr = curr->next;
         }
-        curr = curr->next;
     }
 }
 
@@ -111,21 +112,32 @@ void update_game(GameState* state, char input) {
         spawn_food(state);
         // Do not remove tail - snake grows
     } else {
-        // Remove tail
-        SnakeNode* temp = state->head;
-        while(temp->next && temp->next->next) {
-            temp = temp->next;
+        // Remove tail node from list
+        if (state->head->next == 0) {
+            // Only head exists (should not happen in normal play)
+            return;
         }
-        dealloc(temp->next);
-        temp->next = 0;
-        state->tail = temp;
+        
+        SnakeNode* prev = 0;
+        SnakeNode* curr = state->head;
+        while (curr->next) {
+            prev = curr;
+            curr = curr->next;
+        }
+        
+        // curr is now the tail node, prev is the node before it
+        if (prev) {
+            prev->next = 0;
+            state->tail = prev;
+            dealloc(curr);
+        }
     }
 }
 
 void render_game(GameState* state) {
     clear_screen();
     
-    // Render score info
+    // Render score info (above the board)
     move_cursor(BOARD_X_OFFSET, BOARD_Y_OFFSET - 1);
     char score_str[32];
     int_to_str(state->score, score_str);
@@ -157,14 +169,15 @@ void render_game(GameState* state) {
     SnakeNode* curr = state->head;
     while(curr) {
         move_cursor(BOARD_X_OFFSET + curr->x, BOARD_Y_OFFSET + curr->y);
-        draw_char('O');
+        draw_char(curr == state->head ? '@' : 'O'); // Use '@' for head
         curr = curr->next;
     }
     
     if (state->game_over) {
-        move_cursor(BOARD_X_OFFSET + (GAME_WIDTH / 2) - 5, BOARD_Y_OFFSET + (GAME_HEIGHT / 2));
-        draw_string("GAME OVER!");
+        move_cursor(BOARD_X_OFFSET + (GAME_WIDTH / 2) - 6, BOARD_Y_OFFSET + (GAME_HEIGHT / 2));
+        draw_string(" [ GAME OVER! ] ");
     }
     
+    flush_screen();
     move_cursor(1, BOARD_Y_OFFSET + GAME_HEIGHT + 3);
 }
