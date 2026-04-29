@@ -1,5 +1,18 @@
 #include "math.h"
 
+/**
+ * Custom math module — reimplemented with basic binary shifters.
+ *
+ * Every arithmetic operation avoids hardware MUL/DIV instructions:
+ *   mul()  — shift-and-add (Russian peasant multiplication)
+ *   div()  — bitwise long division (restoring method)
+ *   mod()  — remainder from bitwise long division
+ *   abs()  — sign-bit mask with XOR
+ *
+ * PRNG uses a Linear Congruential Generator driven entirely
+ * by the bitwise mul and div routines above.
+ */
+
 static unsigned int next_seed = 1;
 
 /**

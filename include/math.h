@@ -2,20 +2,21 @@
 #define MATH_H
 
 /**
- * Custom math library.
- * Functions to replace standard libc math operations and random numbers.
+ * Custom math library — reimplemented with basic binary shifters.
+ * All arithmetic (mul, div, mod, abs) uses only bitwise shift,
+ * AND, OR, and XOR operations. No hardware multiply/divide.
  */
 
-/* Multiplies two integers */
+/* Multiplies two integers using shift-and-add */
 int mul(int a, int b);
 
-/* Divides two integers */
+/* Divides two integers using bitwise long division */
 int div(int a, int b);
 
-/* Returns the remainder of division of two integers */
+/* Returns the remainder using bitwise long division */
 int mod(int a, int b);
 
-/* Returns the absolute value of an integer */
+/* Returns the absolute value using sign-bit mask */
 int abs(int n);
 
 /* Initializes the pseudo-random number generator with a seed */
