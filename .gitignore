@@ -2,6 +2,9 @@
 bin/
 *.o
 
+# Runtime data
+.snake_highscore
+
 # OS files
 .DS_Store
 Thumbs.db

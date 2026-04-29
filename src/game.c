@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include "game.h"
+#include "highscore.h"
 #include "memory.h"
 #include "math.h"
 #include "screen.h"
@@ -36,6 +37,7 @@ void init_game(GameState* state) {
     
     state->dir = RIGHT;
     state->score = 0;
+    state->high_score = load_highscore();
     state->game_over = 0;
     
     // Allocate starting head
@@ -109,6 +111,9 @@ void update_game(GameState* state, char input) {
     
     if (ate_food) {
         state->score += 10;
+        if (state->score > state->high_score) {
+            state->high_score = state->score;
+        }
         spawn_food(state);
         // Do not remove tail - snake grows
     } else {
@@ -137,12 +142,19 @@ void update_game(GameState* state, char input) {
 void render_game(GameState* state) {
     clear_screen();
     
-    // Render score info (above the board)
+    // Render score and high score info (above the board)
     move_cursor(BOARD_X_OFFSET, BOARD_Y_OFFSET - 1);
     char score_str[32];
     int_to_str(state->score, score_str);
     draw_string("Score: ");
     draw_string(score_str);
+    
+    // High score display — right-aligned on the same line
+    char hi_str[32];
+    int_to_str(state->high_score, hi_str);
+    move_cursor(BOARD_X_OFFSET + GAME_WIDTH - 8, BOARD_Y_OFFSET - 1);
+    draw_string("HI: ");
+    draw_string(hi_str);
     
     // Draw top border
     move_cursor(BOARD_X_OFFSET, BOARD_Y_OFFSET);

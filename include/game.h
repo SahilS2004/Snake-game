@@ -26,6 +26,7 @@ typedef struct GameState {
     int food_x, food_y;
     Direction dir;
     int score;
+    int high_score;
     int game_over;
 } GameState;
 

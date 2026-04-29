@@ -1,5 +1,6 @@
 #include <unistd.h>
 #include "game.h"
+#include "highscore.h"
 #include "keyboard.h"
 #include "screen.h"
 #include "string.h"
@@ -38,7 +39,10 @@ int main(void) {
         usleep(200000);
     }
     
-    // 3. Graceful Exit
+    // 3. Persist high score to disk
+    save_highscore(state.score);
+    
+    // 4. Graceful Exit
     // Restore original terminal behavior (ICANON/ECHO)
     reset_keyboard();
     
@@ -48,6 +52,12 @@ int main(void) {
     char score_str[32];
     int_to_str(state.score, score_str);
     draw_string(score_str);
+    
+    draw_string("\n\rHigh Score:  ");
+    char hi_str[32];
+    int_to_str(state.high_score, hi_str);
+    draw_string(hi_str);
+    
     draw_string("\n\rDone.\n");
     
     return 0;
