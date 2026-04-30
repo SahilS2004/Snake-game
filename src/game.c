@@ -142,52 +142,81 @@ void update_game(GameState* state, char input) {
 void render_game(GameState* state) {
     clear_screen();
     
-    // Render score and high score info (above the board)
+    // Render score (yellow)
     move_cursor(BOARD_X_OFFSET, BOARD_Y_OFFSET - 1);
+    set_bold();
+    set_color(COLOR_YELLOW);
     char score_str[32];
     int_to_str(state->score, score_str);
     draw_string("Score: ");
     draw_string(score_str);
+    reset_color();
     
-    // High score display — right-aligned on the same line
+    // High score display (cyan, right-aligned)
     char hi_str[32];
     int_to_str(state->high_score, hi_str);
     move_cursor(BOARD_X_OFFSET + GAME_WIDTH - 8, BOARD_Y_OFFSET - 1);
+    set_bold();
+    set_color(COLOR_CYAN);
     draw_string("HI: ");
     draw_string(hi_str);
+    reset_color();
     
-    // Draw top border
+    // Draw top border (blue, box-drawing)
+    set_bold();
+    set_color(COLOR_BLUE);
     move_cursor(BOARD_X_OFFSET, BOARD_Y_OFFSET);
-    for(int x = 0; x <= GAME_WIDTH + 1; x++) draw_char('#');
+    draw_string("\xe2\x95\x94"); // ╔
+    for(int x = 1; x <= GAME_WIDTH; x++) draw_string("\xe2\x95\x90"); // ═
+    draw_string("\xe2\x95\x97"); // ╗
     
-    // Draw sides and contents
+    // Draw sides
     for (int y = 1; y <= GAME_HEIGHT; y++) {
         move_cursor(BOARD_X_OFFSET, BOARD_Y_OFFSET + y);
-        draw_char('#'); // Left wall
+        draw_string("\xe2\x95\x91"); // ║ Left wall
         
         move_cursor(BOARD_X_OFFSET + GAME_WIDTH + 1, BOARD_Y_OFFSET + y);
-        draw_char('#'); // Right wall
+        draw_string("\xe2\x95\x91"); // ║ Right wall
     }
     
     // Draw bottom border
     move_cursor(BOARD_X_OFFSET, BOARD_Y_OFFSET + GAME_HEIGHT + 1);
-    for(int x = 0; x <= GAME_WIDTH + 1; x++) draw_char('#');
+    draw_string("\xe2\x95\x9a"); // ╚
+    for(int x = 1; x <= GAME_WIDTH; x++) draw_string("\xe2\x95\x90"); // ═
+    draw_string("\xe2\x95\x9d"); // ╝
+    reset_color();
     
-    // Draw Food
+    // Draw Food (bright red, bold)
     move_cursor(BOARD_X_OFFSET + state->food_x, BOARD_Y_OFFSET + state->food_y);
+    set_bold();
+    set_color(COLOR_BRIGHT_RED);
     draw_char('*');
+    reset_color();
     
     // Draw Snake
     SnakeNode* curr = state->head;
     while(curr) {
         move_cursor(BOARD_X_OFFSET + curr->x, BOARD_Y_OFFSET + curr->y);
-        draw_char(curr == state->head ? '@' : 'O'); // Use '@' for head
+        if (curr == state->head) {
+            // Head: bright green, bold
+            set_bold();
+            set_color(COLOR_BRIGHT_GREEN);
+            draw_char('@');
+        } else {
+            // Body: green
+            set_color(COLOR_GREEN);
+            draw_char('O');
+        }
+        reset_color();
         curr = curr->next;
     }
     
     if (state->game_over) {
         move_cursor(BOARD_X_OFFSET + (GAME_WIDTH / 2) - 6, BOARD_Y_OFFSET + (GAME_HEIGHT / 2));
+        set_bold();
+        set_color(COLOR_BRIGHT_RED);
         draw_string(" [ GAME OVER! ] ");
+        reset_color();
     }
     
     flush_screen();

@@ -48,15 +48,22 @@ int main(void) {
     
     // Use newlines to push the board up and ensure a clean area for the final score
     draw_string("\n\n\n\n\n"); 
+    set_bold();
+    set_color(COLOR_YELLOW);
     draw_string("Final Score: ");
     char score_str[32];
     int_to_str(state.score, score_str);
     draw_string(score_str);
+    reset_color();
     
-    draw_string("\n\rHigh Score:  ");
+    draw_string("\n\r");
+    set_bold();
+    set_color(COLOR_CYAN);
+    draw_string("High Score:  ");
     char hi_str[32];
     int_to_str(state.high_score, hi_str);
     draw_string(hi_str);
+    reset_color();
     
     draw_string("\n\rDone.\n");
     

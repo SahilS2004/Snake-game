@@ -3,7 +3,7 @@
 
 /**
  * Custom screen drawing implementation.
- * Using standard ANSI escape codes for terminal control.
+ * Using standard ANSI escape codes for terminal control and color.
  */
 
 void clear_screen(void) {
@@ -16,6 +16,18 @@ void move_cursor(int x, int y) {
     // \x1b[y;xH: move to row y, column x (ANSI is 1-indexed)
     printf("\x1b[%d;%dH", y, x);
     fflush(stdout);
+}
+
+void set_color(int color) {
+    printf("\x1b[%dm", color);
+}
+
+void set_bold(void) {
+    printf("\x1b[1m");
+}
+
+void reset_color(void) {
+    printf("\x1b[0m");
 }
 
 void draw_char(char c) {
