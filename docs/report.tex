@@ -7,13 +7,24 @@
 \usepackage{textcomp}
 \usepackage{xcolor}
 \usepackage{listings}
+\usepackage{hyperref}
 
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 
+\lstset{
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    commentstyle=\color{green!60!black},
+    stringstyle=\color{red},
+    breaklines=true,
+    frame=single,
+    language=C
+}
+
 \begin{document}
 
-\title{Low-Level Systems Programming in Terminal Game Development: A Custom Memory and Rendering Approach in C}
+\title{Low-Level Systems Programming in Terminal Game Development: A Custom Memory, Rendering, and Arithmetic Approach in C}
 
 \author{
 \IEEEauthorblockN{Ayush Gupta}
@@ -34,63 +45,125 @@ sahil.s23csai@nst.rishihood.edu.in
 \maketitle
 
 \begin{abstract}
-This paper discusses the implementation of a terminal-based Snake game developed in C, focusing on low-level systems programming techniques. Unlike conventional implementations that rely on high-level libraries like ncurses or the standard C library for memory management, this project implements a custom linked-list based memory allocator, raw ANSI escape sequence rendering, and non-blocking I/O handling via termios. The result is a high-performance, lightweight application that serves as a pedagogical tool for understanding heap management and terminal interfacing.
+This paper discusses the implementation of a terminal-based Snake game developed in C, focusing on low-level systems programming techniques. Unlike conventional implementations that rely on high-level libraries like ncurses or the standard C library for memory management and arithmetic, this project implements a custom linked-list based memory allocator, a color-enabled ANSI rendering engine with Unicode box-drawing, bitwise-only arithmetic operations, non-blocking I/O handling via termios, an interactive menu dashboard, and persistent high score tracking. The result is a feature-rich, high-performance terminal application that serves as a pedagogical tool for understanding heap management, terminal interfacing, and binary arithmetic.
 \end{abstract}
 
 \begin{IEEEkeywords}
-Systems Programming, C, Memory Management, ANSI Escape Codes, Terminal UI, Game Development.
+Systems Programming, C, Memory Management, ANSI Escape Codes, Bitwise Arithmetic, Terminal UI, Game Development.
 \end{IEEEkeywords}
 
 \section{Introduction}
-Modern software development often abstracts hardware and OS interactions through extensive libraries. While efficient for productivity, this abstraction masks the underlying mechanics of memory allocation and terminal communication. This project aims to strip back these layers by building a classic Snake game using only core POSIX APIs and custom logic.
+Modern software development often abstracts hardware and OS interactions through extensive libraries. While efficient for productivity, this abstraction masks the underlying mechanics of memory allocation, terminal communication, and fundamental arithmetic operations. This project aims to strip back these layers by building a feature-complete Snake game using only core POSIX APIs and custom logic.
 
 The primary objectives were:
 \begin{enumerate}
-\item Implementing a custom heap manager on a static buffer.
-\item Developing a rendering engine using direct terminal control codes.
+\item Implementing a custom heap manager on a static 1MB buffer.
+\item Developing a color-enabled rendering engine using direct ANSI escape codes and Unicode characters.
+\item Reimplementing core arithmetic (multiplication, division, modulo) using only bitwise shift operations.
 \item Managing real-time input without blocking the main execution loop.
+\item Building an interactive menu dashboard with ASCII art and pointer-based navigation.
+\item Adding persistent high score tracking via file I/O.
 \end{enumerate}
 
 \section{System Architecture}
-The application is structured into several modular components, each replacing a piece of the standard library or providing a specific system service.
+The application is structured into nine modular components organized in a standard \texttt{src/include} directory layout, each replacing a piece of the standard library or providing a specific system service.
+
+\begin{table}[h]
+\centering
+\caption{Module Overview}
+\begin{tabular}{|l|l|}
+\hline
+\textbf{Module} & \textbf{Responsibility} \\
+\hline
+\texttt{main.c} & Entry point, menu loop, game coordination \\
+\texttt{game.c/h} & Game logic, collision, rendering \\
+\texttt{menu.c/h} & ASCII art dashboard, pointer navigation \\
+\texttt{memory.c/h} & Custom heap allocator (free-list) \\
+\texttt{keyboard.c/h} & Non-blocking terminal input \\
+\texttt{screen.c/h} & ANSI rendering engine with color \\
+\texttt{math.c/h} & Bitwise arithmetic and PRNG \\
+\texttt{string.c/h} & Custom string functions \\
+\texttt{highscore.c/h} & File-based score persistence \\
+\hline
+\end{tabular}
+\end{table}
 
 \subsection{Custom Memory Management}
-The core of the memory system is a static character array of 1MB, which acts as the physical memory. A custom allocator (\textit{alloc}) and deallocator (\textit{dealloc}) manage this space using a free-list approach. Each block of memory is preceded by a header containing the block size, a flag indicating if it is free, and a pointer to the next block.
+The core of the memory system is a static character array of 1MB (\texttt{ram[1024 * 1024]}), which acts as the physical memory. A custom allocator (\textit{alloc}) and deallocator (\textit{dealloc}) manage this space using a free-list approach. Each block of memory is preceded by a header containing the block size, a flag indicating if it is free, and a pointer to the next block.
 
 \subsubsection{Allocation Strategy}
 The allocator uses a First-Fit strategy. When a request is made, the list is traversed until a free block of sufficient size is found. If the block is significantly larger than the request, it is split into two to reduce internal fragmentation.
 
 \subsubsection{Coalescing}
-To prevent external fragmentation, the deallocator performs immediate coalescing. If the freed block's adjacent neighbor is also free, they are merged into a single larger block.
+To prevent external fragmentation, the deallocator performs immediate coalescing. After freeing a block, the entire list is scanned; if adjacent blocks are both free, they are merged into a single larger block.
 
 \subsection{Terminal Rendering Engine}
-Rendering is achieved through ANSI escape sequences. By writing specific byte sequences (e.g., \texttt{\textbackslash 033[H} for cursor home, \texttt{\textbackslash 033[2J} for screen clear), the game controls the terminal display with minimal overhead. This eliminates the need for the \textit{ncurses} library, reducing the binary size and dependency chain.
+Rendering is achieved through ANSI escape sequences. By writing specific byte sequences (e.g., \texttt{\textbackslash 033[H} for cursor home, \texttt{\textbackslash 033[2J} for screen clear, \texttt{\textbackslash 033[<n>m} for color), the game controls the terminal display with minimal overhead.
+
+\subsubsection{Color System}
+The screen module exposes \texttt{set\_color()}, \texttt{set\_bold()}, and \texttt{reset\_color()} functions. The game uses a 16-color ANSI palette to differentiate UI elements: yellow for the score, cyan for the high score, blue for walls, bright red for food, and bright green for the snake head.
+
+\subsubsection{Unicode Box-Drawing}
+The game board borders use Unicode box-drawing characters (U+2550--U+255D) instead of ASCII hash marks, rendered as multi-byte UTF-8 sequences. This produces a cleaner visual appearance with proper corner and edge characters.
 
 \subsection{Non-Blocking Input Handling}
-Standard C input functions (like \textit{getchar}) are blocking by default. The \texttt{keyboard.c} module modifies the terminal settings using the \texttt{termios} library. By disabling canonical mode and echoing, the game can read bytes from stdin as soon as they are pressed, enabling real-time responsiveness.
+Standard C input functions (like \textit{getchar}) are blocking by default. The \texttt{keyboard.c} module modifies the terminal settings using the \texttt{termios} library. By disabling canonical mode and echoing, the game can read bytes from stdin as soon as they are pressed. Arrow key escape sequences (\texttt{\textbackslash 033[A/B/C/D}) are decoded and mapped to WASD equivalents.
+
+\subsection{Bitwise Arithmetic Module}
+All core arithmetic operations avoid hardware \texttt{MUL}/\texttt{DIV} instructions:
+
+\begin{lstlisting}[caption=Shift-and-Add Multiplication]
+int mul(int a, int b) {
+    int res = 0;
+    unsigned int abs_a = (a < 0) ? -a : a;
+    unsigned int abs_b = (b < 0) ? -b : b;
+    while (abs_b > 0) {
+        if (abs_b & 1) res += abs_a;
+        abs_a <<= 1;
+        abs_b >>= 1;
+    }
+    return ((a < 0) ^ (b < 0)) ? -res : res;
+}
+\end{lstlisting}
+
+Division and modulo use a bitwise long division (restoring method), iterating over each bit of the dividend. The absolute value function uses a sign-bit mask with XOR. The pseudo-random number generator implements a Linear Congruential Generator entirely through these bitwise routines.
+
+\subsection{Menu Dashboard}
+The application starts with an interactive menu featuring an ASCII art title rendered in bright green, a high score display, and three selectable options (Start Game, High Score, Quit). A Unicode pointer character (\texttt{U+25B6}, \textbf{\guillemotright}) indicates the current selection and is moved with W/S or arrow keys. The menu runs its own input polling loop at 50ms intervals.
+
+\subsection{High Score Persistence}
+The \texttt{highscore.c} module provides \texttt{load\_highscore()} and \texttt{save\_highscore()} functions. The high score is read from a local file (\texttt{.snake\_highscore}) at game initialization and written only when the player exceeds the stored value. Integer-to-string and string-to-integer conversions use the custom \texttt{string.c} module for consistency with the project's minimal-dependency philosophy.
 
 \section{Implementation Details}
-The game logic is decoupled from the rendering and system layers. The state is maintained in a \texttt{GameState} structure, which holds a linked list of snake nodes.
+The game logic is decoupled from the rendering and system layers. The state is maintained in a \texttt{GameState} structure, which holds a linked list of snake nodes, score, high score, direction, and game-over flag.
 
-\begin{lstlisting}[language=C, caption=Snake Node Structure]
-typedef struct SnakeNode {
-    int x, y;
-    struct SnakeNode* next;
-} SnakeNode;
+\begin{lstlisting}[caption=Game State Structure]
+typedef struct GameState {
+    SnakeNode* head;
+    SnakeNode* tail;
+    int food_x, food_y;
+    Direction dir;
+    int score;
+    int high_score;
+    int game_over;
+} GameState;
 \end{lstlisting}
 
 When the snake moves, a new head node is allocated using the custom \textit{alloc} function. If food is not consumed, the tail node is removed and freed using \textit{dealloc}. This frequent allocation and deallocation cycle serves as a stress test for the custom memory manager.
 
+The main loop follows a menu-driven architecture: after each game round, control returns to the dashboard, allowing the player to start a new game, view the high score, or quit. This required careful management of terminal state and memory reinitialization between rounds.
+
 \section{Performance Analysis}
-By avoiding the standard \texttt{malloc} implementation and high-level UI libraries, the application maintains a near-zero CPU footprint during idle states and provides instantaneous rendering updates. The custom allocator's performance remains consistent throughout the game lifecycle due to the small number of active objects.
+By avoiding the standard \texttt{malloc} implementation and high-level UI libraries, the application maintains a near-zero CPU footprint during idle states and provides instantaneous rendering updates. The custom allocator's performance remains consistent throughout the game lifecycle due to the small number of active objects. The bitwise arithmetic functions, while theoretically slower than hardware instructions, complete in constant time for 32-bit integers (at most 32 iterations per operation).
 
 \section{Conclusion}
-The project successfully demonstrates that complex systems programming concepts can be effectively applied in a simple game environment. The implementation of custom memory management and direct terminal interfacing provides deep insights into how high-level abstractions operate under the hood. Future work could involve extending the memory allocator to support different fit strategies (Best-Fit, Next-Fit) or implementing a custom thread scheduler for background logic.
+The project successfully demonstrates that complex systems programming concepts can be effectively applied in a complete game environment. The implementation of custom memory management, direct terminal interfacing with color and Unicode support, bitwise-only arithmetic, an interactive menu system, and persistent storage provides deep insights into how high-level abstractions operate under the hood. Future work could involve extending the memory allocator to support different fit strategies (Best-Fit, Next-Fit), adding obstacle maps, or implementing a custom thread scheduler for background logic.
 
 \begin{thebibliography}{00}
-\bibitem{b1} B. Kernighan and D. Ritchie, "The C Programming Language," 2nd ed. Prentice Hall, 1988.
-\bibitem{b2} W. R. Stevens and S. A. Rago, "Advanced Programming in the UNIX Environment," 3rd ed. Addison-Wesley, 2013.
+\bibitem{b1} B. Kernighan and D. Ritchie, ``The C Programming Language,'' 2nd ed. Prentice Hall, 1988.
+\bibitem{b2} W. R. Stevens and S. A. Rago, ``Advanced Programming in the UNIX Environment,'' 3rd ed. Addison-Wesley, 2013.
 \bibitem{b3} ANSI Escape Sequences, Terminal Control, VT100 User Manual.
+\bibitem{b4} Unicode Consortium, ``Unicode Standard -- Box Drawing Block (U+2500--U+257F),'' \url{https://unicode.org/charts/PDF/U2500.pdf}.
 \end{thebibliography}
 
 \end{document}
